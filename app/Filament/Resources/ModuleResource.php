@@ -2,33 +2,32 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\RoleResource\Pages;
-use App\Filament\Resources\RoleResource\RelationManagers;
-use App\Models\Role;
+use App\Filament\Resources\ModuleResource\Pages;
+use App\Filament\Resources\ModuleResource\RelationManagers;
+use App\Models\Module;
 use Closure;
 use Filament\Forms;
 use Filament\Forms\Components\Card;
 use Filament\Forms\Components\Checkbox;
-use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Form;
 use Filament\Resources\Resource;
 use Filament\Resources\Table;
 use Filament\Tables;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Str;
 
-class RoleResource extends Resource
+class ModuleResource extends Resource
 {
-    protected static ?string $model = Role::class;
+    protected static ?string $model = Module::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-shield-check';
+    protected static ?string $navigationIcon = 'heroicon-o-bookmark';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
     {
@@ -38,27 +37,30 @@ class RoleResource extends Resource
                     ->schema([
                         TextInput::make('display_name')
                             ->label(__('Display Name'))
-                            ->placeholder(__('Display Name'))
-                            ->hint(__('required'))
-                            ->hintIcon('heroicon-s-question-mark-circle')
-                            ->hintColor('danger')
-                            ->required()
-                            ->reactive()
-                            ->afterStateUpdated(function (Closure $set, $state) {
-                                $set('name', Str::slug($state));
-                            })
-                            ->dehydrateStateUsing(fn ($state) => Str::title($state)),
-                        TextInput::make('name')
-                            ->label(__('Name Role'))
-                            ->placeholder(__('Name Role'))
+                            ->placeholder(__('Module name to display'))
                             ->hint(__('required'))
                             ->hintIcon('heroicon-s-question-mark-circle')
                             ->hintColor('danger')
                             ->minLength(3)
                             ->maxLength(30)
-                            ->required()->unique(ignoreRecord: true),
+                            ->required()
+                            ->reactive()
+                            ->dehydrateStateUsing(fn ($state) => Str::title($state))
+                            ->afterStateUpdated(function (Closure $set, $state) {
+                                $set('name', Str::camel($state));
+                            }),
+                        TextInput::make('name')
+                            ->label(__('Name'))
+                            ->placeholder(__('Internal module name'))
+                            ->hint(__('required'))
+                            ->hintIcon('heroicon-s-question-mark-circle')
+                            ->hintColor('danger')
+                            ->minLength(3)
+                            ->maxLength(30)
+                            ->required()
+                            ->unique(ignoreRecord: true),
                         Checkbox::make('is_active')
-                            ->label(__('Role Active'))
+                            ->label(__('Module Active'))
                             ->default(true)
                     ])->columns(2)
             ]);
@@ -68,30 +70,31 @@ class RoleResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')
-                    ->getStateUsing( function (Role $record) : string {
-                    return $record->name;
-                }),
-                Tables\Columns\TextColumn::make('display_name')
-                    ->getStateUsing( function (Role $record) : string {
-                    return Str::title($record->display_name);
-                }),
-                IconColumn::make('is_active')->label(__('Active'))
+                Tables\Columns\TextColumn::make('name')->label(__('Name'))
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('display_name')->label(__('Display Name'))
+                    ->searchable(),
+                IconColumn::make('is_active')
+                    ->label(__('Active'))
                     ->boolean()
                     ->trueIcon('heroicon-o-badge-check')
                     ->falseIcon('heroicon-o-x-circle')
             ])
             ->filters([
-                Tables\Filters\TrashedFilter::make(),
+                TernaryFilter::make(__('Status'))
+                    ->placeholder(__('All'))
+                    ->trueLabel(__('Active'))
+                    ->falseLabel(__('Not Active'))
+                    ->queries(
+                        true: fn (Builder $query) => $query->where('is_active', true),
+                        false: fn (Builder $query) => $query->where('is_active', false),
+                        blank: fn (Builder $query) => $query->get(),
+                    ),
+                Tables\Filters\TrashedFilter::make()->label(__('Deleted records')),
             ])
             ->actions([
-                //Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make()->action( function (Model $record){
-                    /* protect super-admin role from delete */
-                    if($record->name!='super-admin' || $record->name!='admin')
-                        $record->delete();
-                }),
+                Tables\Actions\DeleteAction::make(),
                 Tables\Actions\ForceDeleteAction::make(),
                 Tables\Actions\RestoreAction::make(),
             ])
@@ -112,17 +115,15 @@ class RoleResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListRoles::route('/'),
-            'create' => Pages\CreateRole::route('/create'),
-            'edit' => Pages\EditRole::route('/{record}/edit'),
+            'index' => Pages\ListModules::route('/'),
+            'create' => Pages\CreateModule::route('/create'),
+            'edit' => Pages\EditModule::route('/{record}/edit'),
         ];
     }
 
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->where('name','!=','super-admin')
-            ->where('name','!=', 'admin')
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
@@ -130,6 +131,6 @@ class RoleResource extends Resource
 
     protected static function getNavigationGroup(): ?string
     {
-        return __('Authorization');
+        return __('Settings');
     }
 }

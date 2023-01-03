@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Filament\Resources\RoleResource\Pages;
+namespace App\Filament\Resources\ModuleResource\Pages;
 
-use App\Filament\Resources\RoleResource;
+use App\Filament\Resources\ModuleResource;
 use Filament\Pages\Actions;
 use Filament\Resources\Pages\EditRecord;
 
-class EditRole extends EditRecord
+class EditModule extends EditRecord
 {
-    protected static string $resource = RoleResource::class;
+    protected static string $resource = ModuleResource::class;
 
     protected function getActions(): array
     {
@@ -26,6 +26,6 @@ class EditRole extends EditRecord
 
     protected function getSavedNotificationTitle(): ?string
     {
-        return 'Role updated';
+        return 'Module updated';
     }
 }
