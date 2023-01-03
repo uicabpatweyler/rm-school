@@ -17,9 +17,17 @@ class CreateSuperAdminSeeder extends Seeder
      */
     public function run()
     {
-        $newUser = User::create([
+        $userSuperAdmin = User::create([
             'name' => 'Weyler A. Uicab P.',
             'email' => 'uicabpatweyler@gmail.com',
+            'email_verified_at' => now(),
+            'password' => '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password
+            'remember_token' => Str::random(10),
+        ]);
+
+        $otherUser = User::create([
+            'name' => 'Jesus R. Uicab K.',
+            'email' => 'uicabkurafael@gmail.com',
             'email_verified_at' => now(),
             'password' => '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password
             'remember_token' => Str::random(10),
@@ -30,6 +38,11 @@ class CreateSuperAdminSeeder extends Seeder
             'display_name' => 'Super Admin'
         ]);
 
-        $newUser->assignRole($roleSuperAdmin);
+        $roleAdmin = Role::create([
+            'name' => 'admin',
+            'display_name' => 'Admin'
+        ]);
+
+        $userSuperAdmin->assignRole($roleSuperAdmin);
     }
 }
